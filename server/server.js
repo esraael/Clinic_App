@@ -13,16 +13,13 @@ app.use(cors({ origin: 'http://localhost:3000', credentials: true }));
 app.use(express.json());
 app.use(cookieParser());
 
-// Serve uploads
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// ======= DB CONNECTION =======
-const MONGO_URI = process.env.MONGO_URI; // استخدمي لينك Atlas من .env
+const MONGO_URI = process.env.MONGO_URI; 
 mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(()=> console.log('✅ MongoDB connected to Atlas'))
   .catch(err=> console.error('❌ MongoDB connection error:', err));
 
-// ======= Schemas =======
 const TestFileSchema = new mongoose.Schema({
   filename: String,
   originalname: String,
@@ -45,7 +42,6 @@ const CaseSchema = new mongoose.Schema({
 
 const Case = mongoose.model('Case', CaseSchema);
 
-// ======= Multer =======
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const dir = path.join(__dirname, 'uploads');
@@ -59,7 +55,6 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage, limits: { fileSize: 20 * 1024 * 1024 } });
 
-// ======= Auth =======
 const JWT_SECRET = process.env.JWT_SECRET || "secret123";
 const FIXED_EMAIL = process.env.FIXED_EMAIL || "doctor@example.com";
 const FIXED_PASSWORD = process.env.FIXED_PASSWORD || "MyStrongPass123";
@@ -92,7 +87,6 @@ app.get('/auth/me', (req, res) => {
   }
 });
 
-// ======= Middleware =======
 function authMiddleware(req, res, next) {
   const token = req.cookies.token;
   if (!token) return res.status(401).json({ error: 'Unauthorized' });
@@ -104,14 +98,11 @@ function authMiddleware(req, res, next) {
   }
 }
 
-// ======= API ROUTES =======
-// Get all cases
 app.get('/api/cases', authMiddleware, async (req, res) => {
   const cases = await Case.find().sort({ createdAt: -1 });
   res.json(cases);
 });
 
-// Create new case
 app.post('/api/cases', authMiddleware, upload.array('investigation', 10), async (req, res) => {
   try {
     const { patientName, age, gender, entryDate, history, progressionNotes } = req.body;
@@ -134,7 +125,6 @@ app.post('/api/cases', authMiddleware, upload.array('investigation', 10), async 
   }
 });
 
-// Update case partially (PATCH)
 app.patch('/api/cases/:id', authMiddleware, upload.array('investigation', 10), async (req, res) => {
   try {
     const { history, progressionNotes, deletedFiles } = req.body;
@@ -174,7 +164,6 @@ app.patch('/api/cases/:id', authMiddleware, upload.array('investigation', 10), a
   }
 });
 
-// Delete case
 app.delete('/api/cases/:id', authMiddleware, async (req, res) => {
   try {
     const caseObj = await Case.findById(req.params.id);
@@ -193,6 +182,5 @@ app.delete('/api/cases/:id', authMiddleware, async (req, res) => {
   }
 });
 
-// ======= Start server =======
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, ()=> console.log('Server running on port', PORT));
